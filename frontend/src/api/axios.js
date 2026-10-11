@@ -1,14 +1,18 @@
 
 import axios from "axios"
 
-const API_BASE_URL = "http://127.0.0.1:8000/api/"
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD
+    ? "https://stock-management-api-v5c3.onrender.com/api/"
+    : "http://127.0.0.1:8000/api/")
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 10000,
+  timeout: 60000,
 })
 
 // Attach the access token to API requests
@@ -49,7 +53,8 @@ api.interceptors.response.use(
     try {
       const response = await axios.post(
         `${API_BASE_URL}token/refresh/`,
-        { refresh: refreshToken }
+        { refresh: refreshToken },
+        { timeout: 60000 }
       )
 
       const newAccessToken = response.data.access
