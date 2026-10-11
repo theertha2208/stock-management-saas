@@ -1,14 +1,13 @@
-
 # Stock Management SaaS
 
-A full-stack, multi-user Stock Management SaaS application built using Django REST Framework, React, PostgreSQL, and Docker.
+A full-stack, multi-tenant Stock Management SaaS application built with Django REST Framework, React, PostgreSQL, and Docker.
 
-The application helps businesses manage products, suppliers, warehouses, stock movements, and inventory reports through a responsive web interface.
+The application enables businesses to manage products, categories, suppliers, warehouses, stock movements, employees, and inventory reports through a responsive web interface.
 
 ## Technology Stack
 
 **Frontend**
-- React (Vite)
+- React with Vite
 - JavaScript
 - CSS
 
@@ -16,20 +15,23 @@ The application helps businesses manage products, suppliers, warehouses, stock m
 - Python
 - Django
 - Django REST Framework
-- JWT Authentication
+- JWT authentication
 
 **Database**
 - PostgreSQL 17
 
-**Tools**
-- Docker Compose
+**Development Tools**
+- Docker and Docker Compose
 - Git and GitHub
+- Ruff for Python linting
+- ESLint for frontend linting
 
 ## Key Features
 
+- Multi-tenant company-based inventory management
 - User registration and login
 - JWT-based authentication
-- Role-based access control
+- Role-based access control for Admin, Manager, and Staff
 - Product and category management
 - Supplier management
 - Warehouse management
@@ -38,8 +40,9 @@ The application helps businesses manage products, suppliers, warehouses, stock m
 - Low-stock alerts
 - Dashboard statistics
 - Inventory reports
-- User management and invitations
-- Responsive mobile-friendly interface
+- Employee management and invitations
+- Responsive interface for desktop and mobile devices
+- REST API documentation using Swagger
 
 ## Project Structure
 
@@ -49,131 +52,192 @@ stock-management-saas/
 │   ├── accounts/
 │   ├── config/
 │   ├── inventory/
+│   │   ├── management/
+│   │   │   └── commands/
+│   │   │       └── seed_demo.py
+│   │   └── tests/
+│   ├── Dockerfile
 │   ├── manage.py
-│   └── requirements.txt
+│   ├── requirements.txt
+│   └── ruff.toml
 ├── frontend/
 │   ├── public/
 │   ├── src/
+│   ├── Dockerfile
 │   └── package.json
-├── docker-compose.yml
+├── .env.example
 ├── .gitignore
+├── docker-compose.yml
 └── README.md
 ```
 
-## Local Setup
+## Local Setup Using Docker
 
 ### Prerequisites
 
-- Python
-- Node.js and npm
-- Docker Desktop
 - Git
+- Docker Desktop with Docker Compose
 
-### 1. Clone the repository
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/theertha2208/stock-management-saas.git
 cd stock-management-saas
 ```
 
-### 2. Configure environment variables
+### 2. Configure Environment Variables
 
-Create a `.env` file in the project root.
+Create a `.env` file in the project root using `.env.example` as a reference.
 
-Required variables:
-
-```env
-DJANGO_SECRET_KEY=replace-with-a-secure-random-key
-DJANGO_DEBUG=True
-DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
-
-POSTGRES_DB=stock_management
-POSTGRES_USER=stock_user
-POSTGRES_PASSWORD=replace-with-a-strong-password
-POSTGRES_HOST=127.0.0.1
-POSTGRES_PORT=5432
-
-CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
-```
-
-These values are examples. Use your own secure credentials.
-
-### 3. Start PostgreSQL
-
-```bash
-docker compose up -d
-```
-
-### 4. Set up the Django backend
-
-```bash
-cd backend
-python -m venv .venv
-```
-
-Activate the virtual environment on Windows:
+On Windows PowerShell:
 
 ```powershell
-.venv\Scripts\Activate.ps1
+Copy-Item .env.example .env
 ```
 
-Install dependencies:
+Update the values according to your local environment.
+
+Use a strong, unique Django secret key and PostgreSQL password.
+
+Do not commit `.env` or real credentials to GitHub.
+
+### 3. Start the Application
+
+Ensure Docker Desktop is running.
+
+From the project root, execute:
 
 ```bash
-pip install -r requirements.txt
+docker compose up -d --build
 ```
 
-Run migrations:
+This builds and starts the services defined in `docker-compose.yml`.
+
+Check their status:
 
 ```bash
-python manage.py migrate
+docker compose ps
 ```
 
-Start Django:
+### 4. Run Database Migrations
 
 ```bash
-python manage.py runserver
+docker compose exec backend python manage.py migrate
 ```
 
-Backend URL: http://127.0.0.1:8000/
+### 5. Load Demo Data
 
-### 5. Set up the React frontend
-
-Open a new terminal in the project root:
+The project includes a Django management command for preparing demonstration data:
 
 ```bash
-cd frontend
+docker compose exec backend python manage.py seed_demo
+```
+
+Use the demo accounts configured by the seed command when testing the application.
+
+### 6. Access the Application
+
+**Frontend**
+
+http://localhost:5173/
+
+**Backend API**
+
+http://localhost:8000/
+
+**Swagger API Documentation**
+
+http://localhost:8000/api/docs/
+
+These URLs assume the default local port configuration.
+
+## Running Tests
+
+### Backend Tests
+
+From the project root:
+
+```bash
+docker compose exec backend python manage.py test inventory.tests.test_api_security inventory.tests.test_stock_services -v 2
+```
+
+The security and stock service test suites contain 28 tests.
+
+### Backend Linting
+
+```bash
+docker compose exec backend ruff check .
+```
+
+### Frontend Linting
+
+From the frontend directory:
+
+```bash
 npm install
-npm run dev
+npm run lint
 ```
 
-Frontend URL: http://localhost:5173/
-
-## Running Backend Tests
-
-From the backend directory:
+### Frontend Production Build
 
 ```bash
-python manage.py test inventory.tests.test_api_security inventory.tests.test_stock_services
+npm run build
 ```
+
+## Multi-Tenant Architecture
+
+The application is designed for company-based inventory management.
+
+Company-specific data is separated through backend access controls and query filtering to prevent users from accessing inventory records belonging to other companies.
+
+## User Roles
+
+**Admin**
+- Manage company employees and invitations
+- Manage company inventory and related resources
+
+**Manager and Staff**
+- Access permitted inventory features according to backend role permissions
+
+All authorization rules are enforced by the backend.
+
+## Inventory Management
+
+The application supports stock movements across warehouses, allowing businesses to record incoming and outgoing stock.
+
+Inventory reports and dashboard information help users monitor stock levels, product availability, and inventory activity.
 
 ## Mobile Support
 
-The application includes a responsive interface with mobile navigation, dashboard cards, and inventory management pages.
+The frontend includes responsive layouts intended for desktop and mobile screens.
 
-To test the mobile layout locally, open the frontend URL using a mobile browser or your browser's responsive device mode.
+To test the mobile interface:
+
+1. Open the frontend URL in a browser.
+2. Open Developer Tools.
+3. Enable responsive device mode.
+4. Select a mobile screen size.
+5. Test navigation and inventory management pages.
 
 ## Security
 
-- JWT-based authentication
-- Role-based permissions
-- Environment-based secrets and database credentials
-- Password validation
-- Django REST Framework authentication and permission controls
+- JWT authentication
+- Role-based backend permissions
+- Company-based data isolation
+- Environment-based secrets and database configuration
+- Django password validation
+- API authentication and authorization checks
 
-## Deployment
+## Development Notes
 
-The application is configured for local development. Production deployment requires hosting for the Django backend, React frontend, and PostgreSQL database, along with production environment configuration.
+- The project is configured for local development and demonstration.
+- Production deployment requires secure hosting, HTTPS, appropriate allowed-host and CORS settings, and production-ready secrets.
+- Invitation emails may be displayed in backend console output during development, depending on the configured email backend.
+- Localhost URLs are not publicly accessible deployment links.
+
+## GitHub Repository
+
+https://github.com/theertha2208/stock-management-saas
 
 ## Author
 
