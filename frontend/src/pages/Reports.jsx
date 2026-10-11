@@ -19,6 +19,27 @@ const movementLabels = {
   OUT: "Legacy Stock Out",
 }
 
+async function fetchReports() {
+  const [
+    summaryResponse,
+    lowStockResponse,
+    warehouseResponse,
+    movementResponse,
+  ] = await Promise.all([
+    api.get("v1/reports/summary/"),
+    api.get("v1/reports/low-stock/"),
+    api.get("v1/reports/warehouses/"),
+    api.get("v1/reports/movements/"),
+  ])
+
+  return {
+    summary: summaryResponse.data,
+    lowStock: lowStockResponse.data,
+    warehouses: warehouseResponse.data,
+    movements: movementResponse.data,
+  }
+}
+
 function StatCard({ label, value }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -39,27 +60,20 @@ function Reports() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
+  const applyReportData = useCallback((data) => {
+    setSummary(data.summary)
+    setLowStock(data.lowStock)
+    setWarehouses(data.warehouses)
+    setMovements(data.movements)
+  }, [])
+
   const loadReports = useCallback(async () => {
     setLoading(true)
     setError("")
 
     try {
-      const [
-        summaryResponse,
-        lowStockResponse,
-        warehouseResponse,
-        movementResponse,
-      ] = await Promise.all([
-        api.get("v1/reports/summary/"),
-        api.get("v1/reports/low-stock/"),
-        api.get("v1/reports/warehouses/"),
-        api.get("v1/reports/movements/"),
-      ])
-
-      setSummary(summaryResponse.data)
-      setLowStock(lowStockResponse.data)
-      setWarehouses(warehouseResponse.data)
-      setMovements(movementResponse.data)
+      const data = await fetchReports()
+      applyReportData(data)
     } catch (err) {
       setError(
         err.response?.data?.detail ||
@@ -68,11 +82,38 @@ function Reports() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [applyReportData])
 
   useEffect(() => {
-    loadReports()
-  }, [loadReports])
+    let active = true
+
+    async function loadInitialReports() {
+      try {
+        const data = await fetchReports()
+
+        if (active) {
+          applyReportData(data)
+        }
+      } catch (err) {
+        if (active) {
+          setError(
+            err.response?.data?.detail ||
+              "Unable to load reports. Please try again."
+          )
+        }
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadInitialReports()
+
+    return () => {
+      active = false
+    }
+  }, [applyReportData])
 
   if (loading) {
     return (
@@ -159,6 +200,7 @@ function Reports() {
                 <th className="px-5 py-3">Shortage</th>
               </tr>
             </thead>
+
             <tbody>
               {lowStock.length === 0 ? (
                 <tr>
@@ -178,7 +220,9 @@ function Reports() {
                     <td className="px-5 py-3 font-medium">
                       {product.name}
                     </td>
-                    <td className="px-5 py-3">{product.sku}</td>
+                    <td className="px-5 py-3">
+                      {product.sku}
+                    </td>
                     <td className="px-5 py-3">
                       {product.stock_quantity}
                     </td>
@@ -214,6 +258,7 @@ function Reports() {
                 <th className="px-5 py-3">Stock Value</th>
               </tr>
             </thead>
+
             <tbody>
               {warehouses.length === 0 ? (
                 <tr>
@@ -269,6 +314,7 @@ function Reports() {
                 <th className="px-5 py-3">Total Quantity</th>
               </tr>
             </thead>
+
             <tbody>
               {!movements?.by_type?.length ? (
                 <tr>

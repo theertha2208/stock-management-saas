@@ -5,14 +5,13 @@ from django.core.exceptions import (
     ValidationError as DjangoValidationError,
 )
 from django.db.models import (
-    Q,
-    F,
-    Sum,
     Count,
     DecimalField,
     ExpressionWrapper,
+    F,
+    Q,
+    Sum,
 )
-
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import (
@@ -23,34 +22,30 @@ from rest_framework.response import Response
 
 from .models import (
     Category,
-    Supplier,
     Product,
-    Warehouse,
     StockLevel,
     StockMovement,
+    Supplier,
+    Warehouse,
 )
-
-from .serializers import (
-    CategorySerializer,
-    SupplierSerializer,
-    ProductSerializer,
-    WarehouseSerializer,
-    StockLevelSerializer,
-    StockMovementSerializer,
-    RecordStockMovementSerializer,
-)
-
-from .services import record_stock_movement
-
 from .permissions import (
-    IsCompanyMember,
-    IsAdminOrManagerOrReadOnly,
     CanManageInventory,
     CanManageWarehouses,
     CanRecordStockMovements,
     CanViewReports,
+    IsAdminOrManagerOrReadOnly,
+    IsCompanyMember,
 )
-
+from .serializers import (
+    CategorySerializer,
+    ProductSerializer,
+    RecordStockMovementSerializer,
+    StockLevelSerializer,
+    StockMovementSerializer,
+    SupplierSerializer,
+    WarehouseSerializer,
+)
+from .services import record_stock_movement
 
 # ==================================================
 # COMMON COMPANY-SCOPED VIEWSET

@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react"
 
 import api from "../api/axios"
-import { useAuth } from "../context/AuthContext"
+import { useAuth } from "../context/auth-context"
 
 import AddProductForm from "../components/AddProductForm"
 import EditProductForm from "../components/EditProductForm"

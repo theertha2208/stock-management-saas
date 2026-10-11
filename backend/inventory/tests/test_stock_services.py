@@ -8,13 +8,12 @@ from django.test import TestCase
 from accounts.models import Company
 from inventory.models import (
     Product,
-    Supplier,
-    Warehouse,
     StockLevel,
     StockMovement,
+    Supplier,
+    Warehouse,
 )
 from inventory.services import record_stock_movement
-
 
 User = get_user_model()
 

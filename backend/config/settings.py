@@ -1,3 +1,4 @@
+
 from pathlib import Path
 
 import environ
@@ -143,7 +144,21 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
+
+# Swagger / OpenAPI documentation
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Stock Management SaaS API",
+    "DESCRIPTION": (
+        "REST API documentation for the multi-tenant "
+        "Stock Management SaaS application."
+    ),
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+}
+
 # Email configuration for development
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 

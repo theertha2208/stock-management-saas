@@ -4,11 +4,11 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     CompanyUserViewSet,
-    current_user,
-    register_company,
-    company_invitations,
-    invitation_details,
     accept_invitation,
+    company_invitations,
+    current_user,
+    invitation_details,
+    register_company,
 )
 
 router = DefaultRouter()

@@ -50,10 +50,8 @@ function Signup() {
     setLoading(true)
 
     try {
-      const {
-        confirm_password,
-        ...registrationData
-      } = form
+      const registrationData = { ...form }
+      delete registrationData.confirm_password
 
       await api.post("v1/register/", registrationData)
 
@@ -169,7 +167,8 @@ function Signup() {
                 autoComplete={
                   field.name === "email"
                     ? "email"
-                    : field.name === "password"
+                    : field.name === "password" ||
+                        field.name === "confirm_password"
                       ? "new-password"
                       : undefined
                 }

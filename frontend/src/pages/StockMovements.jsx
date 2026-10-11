@@ -1,7 +1,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import api from "../api/axios"
-import { useAuth } from "../context/AuthContext"
+import { useAuth } from "../context/auth-context"
 
 const initialForm = {
   product: "",
@@ -36,6 +36,9 @@ const movementColors = {
   OUT: "bg-slate-100 text-slate-700",
 }
 
+const inputClass =
+  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+
 function getErrorMessage(error) {
   const data = error.response?.data
 
@@ -57,6 +60,7 @@ function getErrorMessage(error) {
         const message = Array.isArray(value)
           ? value.join(", ")
           : String(value)
+
         return `${key}: ${message}`
       })
       .join(" | ")
@@ -85,6 +89,30 @@ async function fetchAllPages(endpoint) {
   return results
 }
 
+async function fetchMovementData() {
+  const [
+    products,
+    warehouses,
+    suppliers,
+    stockLevels,
+    movements,
+  ] = await Promise.all([
+    fetchAllPages("products/"),
+    fetchAllPages("warehouses/"),
+    fetchAllPages("suppliers/"),
+    fetchAllPages("stock-levels/"),
+    fetchAllPages("stock-movements/"),
+  ])
+
+  return {
+    products,
+    warehouses,
+    suppliers,
+    stockLevels,
+    movements,
+  }
+}
+
 function formatDate(value) {
   if (!value) return "—"
 
@@ -100,7 +128,6 @@ function formatDate(value) {
 
 function StockMovements() {
   const { user } = useAuth()
-
   const isStaff = user?.role === "STAFF"
 
   const movementTypes = isStaff
@@ -132,40 +159,55 @@ function StockMovements() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
 
+  const applyData = useCallback((data) => {
+    setProducts(data.products)
+    setWarehouses(data.warehouses)
+    setSuppliers(data.suppliers)
+    setStockLevels(data.stockLevels)
+    setMovements(data.movements)
+  }, [])
+
   const loadData = useCallback(async () => {
     setLoading(true)
     setError("")
 
     try {
-      const [
-        productData,
-        warehouseData,
-        supplierData,
-        stockData,
-        movementData,
-      ] = await Promise.all([
-        fetchAllPages("products/"),
-        fetchAllPages("warehouses/"),
-        fetchAllPages("suppliers/"),
-        fetchAllPages("stock-levels/"),
-        fetchAllPages("stock-movements/"),
-      ])
-
-      setProducts(productData)
-      setWarehouses(warehouseData)
-      setSuppliers(supplierData)
-      setStockLevels(stockData)
-      setMovements(movementData)
+      const data = await fetchMovementData()
+      applyData(data)
     } catch (err) {
       setError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [applyData])
 
   useEffect(() => {
-    loadData()
-  }, [loadData])
+    let active = true
+
+    async function loadInitialData() {
+      try {
+        const data = await fetchMovementData()
+
+        if (active) {
+          applyData(data)
+        }
+      } catch (err) {
+        if (active) {
+          setError(getErrorMessage(err))
+        }
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadInitialData()
+
+    return () => {
+      active = false
+    }
+  }, [applyData])
 
   const activeProducts = useMemo(
     () => products.filter((product) => product.is_active),
@@ -214,10 +256,8 @@ function StockMovements() {
   const selectedWarehouseId =
     form.movement_type === "PURCHASE_IN" ||
     form.movement_type === "RETURN" ||
-    (
-      form.movement_type === "ADJUSTMENT" &&
-      form.adjustment_direction === "IN"
-    )
+    (form.movement_type === "ADJUSTMENT" &&
+      form.adjustment_direction === "IN")
       ? form.to_warehouse
       : form.from_warehouse
 
@@ -239,6 +279,7 @@ function StockMovements() {
       ...initialForm,
       movement_type: type,
     })
+
     setError("")
     setSuccess("")
   }
@@ -248,6 +289,7 @@ function StockMovements() {
       ...initialForm,
       movement_type: movementTypes[0],
     })
+
     setError("")
     setSuccess("")
     setShowForm(true)
@@ -312,8 +354,10 @@ function StockMovements() {
       return
     }
 
-    if (!Number.isInteger(Number(form.quantity)) ||
-        Number(form.quantity) <= 0) {
+    if (
+      !Number.isInteger(Number(form.quantity)) ||
+      Number(form.quantity) <= 0
+    ) {
       setError("Quantity must be a positive whole number.")
       return
     }
@@ -345,30 +389,21 @@ function StockMovements() {
   const needsSource =
     form.movement_type === "SALE_OUT" ||
     form.movement_type === "TRANSFER" ||
-    (
-      form.movement_type === "ADJUSTMENT" &&
-      form.adjustment_direction === "OUT"
-    )
+    (form.movement_type === "ADJUSTMENT" &&
+      form.adjustment_direction === "OUT")
 
   const needsDestination =
     form.movement_type === "PURCHASE_IN" ||
     form.movement_type === "TRANSFER" ||
     form.movement_type === "RETURN" ||
-    (
-      form.movement_type === "ADJUSTMENT" &&
-      form.adjustment_direction === "IN"
-    )
+    (form.movement_type === "ADJUSTMENT" &&
+      form.adjustment_direction === "IN")
 
   const needsUnitCost =
     form.movement_type === "PURCHASE_IN" ||
     form.movement_type === "RETURN" ||
-    (
-      form.movement_type === "ADJUSTMENT" &&
-      form.adjustment_direction === "IN"
-    )
-
-  const inputClass =
-    "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+    (form.movement_type === "ADJUSTMENT" &&
+      form.adjustment_direction === "IN")
 
   return (
     <div className="space-y-6">
@@ -383,6 +418,7 @@ function StockMovements() {
         </div>
 
         <button
+          type="button"
           onClick={() => {
             if (showForm) {
               setShowForm(false)
@@ -510,10 +546,7 @@ function StockMovements() {
                   className={inputClass}
                   value={form.from_warehouse}
                   onChange={(event) =>
-                    updateField(
-                      "from_warehouse",
-                      event.target.value
-                    )
+                    updateField("from_warehouse", event.target.value)
                   }
                 >
                   <option value="">Select source warehouse</option>
@@ -608,10 +641,7 @@ function StockMovements() {
                 className={inputClass}
                 value={form.reference_number}
                 onChange={(event) =>
-                  updateField(
-                    "reference_number",
-                    event.target.value
-                  )
+                  updateField("reference_number", event.target.value)
                 }
               />
             </label>
@@ -684,13 +714,11 @@ function StockMovements() {
             }
           >
             <option value="">All movement types</option>
-            {Object.entries(movementLabels).map(
-              ([type, label]) => (
-                <option key={type} value={type}>
-                  {label}
-                </option>
-              )
-            )}
+            {Object.entries(movementLabels).map(([type, label]) => (
+              <option key={type} value={type}>
+                {label}
+              </option>
+            ))}
           </select>
 
           <input
@@ -760,14 +788,12 @@ function StockMovements() {
                       <td className="px-5 py-4">
                         <span
                           className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                            movementColors[
-                              movement.movement_type
-                            ] || "bg-slate-100 text-slate-700"
+                            movementColors[movement.movement_type] ||
+                            "bg-slate-100 text-slate-700"
                           }`}
                         >
-                          {movementLabels[
-                            movement.movement_type
-                          ] || movement.movement_type}
+                          {movementLabels[movement.movement_type] ||
+                            movement.movement_type}
                         </span>
 
                         {movement.is_legacy && (

@@ -18,6 +18,14 @@ const fields = [
   { name: "address", label: "Address" },
 ]
 
+async function fetchSuppliers() {
+  const response = await api.get("suppliers/")
+
+  return Array.isArray(response.data)
+    ? response.data
+    : response.data.results ?? []
+}
+
 function Suppliers() {
   const [suppliers, setSuppliers] = useState([])
   const [form, setForm] = useState(emptyForm)
@@ -29,13 +37,10 @@ function Suppliers() {
 
   const loadSuppliers = async () => {
     setLoading(true)
+
     try {
-      const response = await api.get("suppliers/")
-      setSuppliers(
-        Array.isArray(response.data)
-          ? response.data
-          : response.data.results ?? []
-      )
+      const supplierData = await fetchSuppliers()
+      setSuppliers(supplierData)
     } catch {
       setError("Unable to load suppliers.")
     } finally {
@@ -44,7 +49,31 @@ function Suppliers() {
   }
 
   useEffect(() => {
-    loadSuppliers()
+    let active = true
+
+    async function loadInitialSuppliers() {
+      try {
+        const supplierData = await fetchSuppliers()
+
+        if (active) {
+          setSuppliers(supplierData)
+        }
+      } catch {
+        if (active) {
+          setError("Unable to load suppliers.")
+        }
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadInitialSuppliers()
+
+    return () => {
+      active = false
+    }
   }, [])
 
   const resetForm = () => {
@@ -71,6 +100,7 @@ function Suppliers() {
       await loadSuppliers()
     } catch (err) {
       const details = err.response?.data
+
       setError(
         err.response?.status === 403
           ? "You do not have permission to manage suppliers."
@@ -85,6 +115,7 @@ function Suppliers() {
 
   const handleEdit = (supplier) => {
     setEditingId(supplier.id)
+
     setForm({
       name: supplier.name ?? "",
       contact_person: supplier.contact_person ?? "",
@@ -92,6 +123,7 @@ function Suppliers() {
       email: supplier.email ?? "",
       address: supplier.address ?? "",
     })
+
     setError("")
     setMessage("")
   }
@@ -106,7 +138,11 @@ function Suppliers() {
 
     try {
       await api.delete(`suppliers/${supplier.id}/`)
-      if (editingId === supplier.id) resetForm()
+
+      if (editingId === supplier.id) {
+        resetForm()
+      }
+
       setMessage("Supplier deleted successfully.")
       await loadSuppliers()
     } catch (err) {
@@ -124,6 +160,7 @@ function Suppliers() {
         <h2 className="text-2xl font-bold text-slate-800">
           Suppliers
         </h2>
+
         <p className="mt-1 text-sm text-slate-500">
           Manage the suppliers for your company's products.
         </p>
@@ -168,7 +205,7 @@ function Suppliers() {
                       [field.name]: e.target.value,
                     })
                   }
-                  required={field.required}
+                  required={Boolean(field.required)}
                   className="w-full rounded-lg border border-slate-300 p-3"
                 />
               )}
@@ -236,34 +273,47 @@ function Suppliers() {
               <tbody>
                 {suppliers.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="p-6 text-center text-slate-500">
+                    <td
+                      colSpan={5}
+                      className="p-6 text-center text-slate-500"
+                    >
                       No suppliers found.
                     </td>
                   </tr>
                 ) : (
                   suppliers.map((supplier) => (
-                    <tr key={supplier.id} className="border-t">
+                    <tr
+                      key={supplier.id}
+                      className="border-t"
+                    >
                       <td className="px-5 py-4 font-medium">
                         {supplier.name}
                       </td>
+
                       <td className="px-5 py-4">
                         {supplier.contact_person || "—"}
                       </td>
+
                       <td className="px-5 py-4">
                         {supplier.phone || "—"}
                       </td>
+
                       <td className="px-5 py-4">
                         {supplier.email || "—"}
                       </td>
+
                       <td className="px-5 py-4">
                         <div className="flex gap-2">
                           <button
+                            type="button"
                             onClick={() => handleEdit(supplier)}
                             className="rounded bg-amber-500 px-3 py-2 text-white"
                           >
                             Edit
                           </button>
+
                           <button
+                            type="button"
                             onClick={() => handleDelete(supplier)}
                             className="rounded bg-red-600 px-3 py-2 text-white"
                           >

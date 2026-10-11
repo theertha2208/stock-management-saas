@@ -6,7 +6,8 @@ import {
   Navigate,
 } from "react-router-dom"
 
-import { AuthProvider, useAuth } from "./context/AuthContext"
+import { AuthProvider } from "./context/AuthContext"
+import { useAuth } from "./context/auth-context"
 
 import Sidebar from "./components/Sidebar"
 import LogoutButton from "./components/LogoutButton"
@@ -24,12 +25,20 @@ import UserManagement from "./pages/UserManagement"
 import Reports from "./pages/Reports"
 
 function DashboardLayout() {
-  const { user, loading, error, isAdmin, canManageInventory } = useAuth()
+  const {
+    user,
+    loading,
+    error,
+    isAdmin,
+    canManageInventory,
+  } = useAuth()
 
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-slate-600">Loading your account...</p>
+        <p className="text-slate-600">
+          Loading your account...
+        </p>
       </div>
     )
   }
@@ -78,25 +87,40 @@ function DashboardLayout() {
 
         <main className="p-4 md:p-8">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/warehouses" element={<Warehouses />} />
+            <Route
+              path="/"
+              element={<Dashboard />}
+            />
+
+            <Route
+              path="/products"
+              element={<Products />}
+            />
+
+            <Route
+              path="/warehouses"
+              element={<Warehouses />}
+            />
 
             <Route
               path="/categories"
               element={
-                canManageInventory
-                  ? <Categories />
-                  : <Navigate to="/" replace />
+                canManageInventory ? (
+                  <Categories />
+                ) : (
+                  <Navigate to="/" replace />
+                )
               }
             />
 
             <Route
               path="/suppliers"
               element={
-                canManageInventory
-                  ? <Suppliers />
-                  : <Navigate to="/" replace />
+                canManageInventory ? (
+                  <Suppliers />
+                ) : (
+                  <Navigate to="/" replace />
+                )
               }
             />
 
@@ -108,18 +132,22 @@ function DashboardLayout() {
             <Route
               path="/reports"
               element={
-                canManageInventory
-                  ? <Reports />
-                  : <Navigate to="/" replace />
+                canManageInventory ? (
+                  <Reports />
+                ) : (
+                  <Navigate to="/" replace />
+                )
               }
             />
 
             <Route
               path="/users"
               element={
-                isAdmin
-                  ? <UserManagement />
-                  : <Navigate to="/" replace />
+                isAdmin ? (
+                  <UserManagement />
+                ) : (
+                  <Navigate to="/" replace />
+                )
               }
             />
 
@@ -145,18 +173,22 @@ function App() {
         <Route
           path="/login"
           element={
-            isAuthenticated
-              ? <Navigate to="/" replace />
-              : <Login />
+            isAuthenticated ? (
+              <Navigate to="/" replace />
+            ) : (
+              <Login />
+            )
           }
         />
 
         <Route
           path="/signup"
           element={
-            isAuthenticated
-              ? <Navigate to="/" replace />
-              : <Signup />
+            isAuthenticated ? (
+              <Navigate to="/" replace />
+            ) : (
+              <Signup />
+            )
           }
         />
 

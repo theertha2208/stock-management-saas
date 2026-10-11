@@ -3,11 +3,11 @@ from rest_framework import serializers
 
 from .models import (
     Category,
-    Supplier,
     Product,
-    Warehouse,
     StockLevel,
     StockMovement,
+    Supplier,
+    Warehouse,
 )
 
 

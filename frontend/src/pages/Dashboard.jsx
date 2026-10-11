@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react"
 import api from "../api/axios"
-import { useAuth } from "../context/AuthContext"
+import { useAuth } from "../context/auth-context"
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("en-IN", {

@@ -1,6 +1,7 @@
 
 from django.contrib import admin
-from .models import Category, Supplier, Product, StockMovement
+
+from .models import Category, Product, StockMovement, Supplier
 
 
 @admin.register(Category)

@@ -1,13 +1,33 @@
 
 import { useEffect, useMemo, useState } from "react"
 import api from "../api/axios"
-import { useAuth } from "../context/AuthContext"
+import { useAuth } from "../context/auth-context"
 
 const emptyForm = {
   name: "",
   code: "",
   address: "",
   is_active: true,
+}
+
+async function fetchAllPages(url) {
+  let results = []
+  let next = url
+
+  while (next) {
+    const response = await api.get(next)
+    const data = response.data
+
+    if (Array.isArray(data)) {
+      results = [...results, ...data]
+      break
+    }
+
+    results = [...results, ...(data.results || [])]
+    next = data.next
+  }
+
+  return results
 }
 
 function Warehouses() {
@@ -24,26 +44,6 @@ function Warehouses() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
-
-  async function fetchAllPages(url) {
-    let results = []
-    let next = url
-
-    while (next) {
-      const response = await api.get(next)
-      const data = response.data
-
-      if (Array.isArray(data)) {
-        results = [...results, ...data]
-        break
-      }
-
-      results = [...results, ...(data.results || [])]
-      next = data.next
-    }
-
-    return results
-  }
 
   async function loadData() {
     setLoading(true)
@@ -65,7 +65,35 @@ function Warehouses() {
   }
 
   useEffect(() => {
-    loadData()
+    let active = true
+
+    async function fetchInitialData() {
+      try {
+        const [warehouseData, stockData] = await Promise.all([
+          fetchAllPages("warehouses/"),
+          fetchAllPages("stock-levels/"),
+        ])
+
+        if (!active) return
+
+        setWarehouses(warehouseData)
+        setStockLevels(stockData)
+      } catch {
+        if (active) {
+          setError("Unable to load warehouse information.")
+        }
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    fetchInitialData()
+
+    return () => {
+      active = false
+    }
   }, [])
 
   const filteredWarehouses = useMemo(() => {
@@ -137,7 +165,7 @@ function Warehouses() {
       const details = err.response?.data
       setError(
         details?.detail ||
-          JSON.stringify(details) ||
+          (details ? JSON.stringify(details) : "") ||
           "Unable to save warehouse."
       )
     } finally {
@@ -153,6 +181,7 @@ function Warehouses() {
       await api.patch(`warehouses/${warehouse.id}/`, {
         is_active: !warehouse.is_active,
       })
+
       setSuccess("Warehouse status updated.")
       await loadData()
     } catch (err) {
@@ -177,6 +206,7 @@ function Warehouses() {
 
         {canManageInventory && (
           <button
+            type="button"
             onClick={openCreate}
             className="rounded-lg bg-blue-600 px-5 py-3 font-medium text-white hover:bg-blue-700"
           >
@@ -304,9 +334,8 @@ function Warehouses() {
                     </td>
                     <td className="space-x-3 p-3">
                       <button
-                        onClick={() =>
-                          setSelectedWarehouse(warehouse)
-                        }
+                        type="button"
+                        onClick={() => setSelectedWarehouse(warehouse)}
                         className="font-medium text-blue-600"
                       >
                         View Stock
@@ -315,6 +344,7 @@ function Warehouses() {
                       {canManageInventory && (
                         <>
                           <button
+                            type="button"
                             onClick={() => openEdit(warehouse)}
                             className="text-slate-700"
                           >
@@ -322,6 +352,7 @@ function Warehouses() {
                           </button>
 
                           <button
+                            type="button"
                             onClick={() => toggleActive(warehouse)}
                             className="text-amber-700"
                           >
@@ -348,6 +379,7 @@ function Warehouses() {
             </h3>
 
             <button
+              type="button"
               onClick={() => setSelectedWarehouse(null)}
               className="text-slate-500"
             >

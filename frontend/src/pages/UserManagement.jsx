@@ -42,6 +42,38 @@ function getErrorMessage(error, fallback) {
     .join(" | ")
 }
 
+async function fetchManagementData() {
+  const allUsers = []
+  let nextUrl = "company-users/"
+
+  while (nextUrl) {
+    const response = await api.get(nextUrl)
+    const data = response.data
+
+    if (Array.isArray(data)) {
+      allUsers.push(...data)
+      break
+    }
+
+    if (!Array.isArray(data?.results)) {
+      throw new Error("Unexpected employee API response.")
+    }
+
+    allUsers.push(...data.results)
+    nextUrl = data.next || null
+  }
+
+  const invitationResponse = await api.get("v1/invitations/")
+  const invitationData = invitationResponse.data
+
+  return {
+    users: allUsers,
+    invitations: Array.isArray(invitationData)
+      ? invitationData
+      : invitationData.results || [],
+  }
+}
+
 function StatusBadge({ status }) {
   const styles = {
     PENDING: "bg-amber-100 text-amber-800",
@@ -76,43 +108,17 @@ function UserManagement() {
   const [error, setError] = useState("")
   const [message, setMessage] = useState("")
 
+  const applyData = useCallback((data) => {
+    setUsers(data.users)
+    setInvitations(data.invitations)
+  }, [])
+
   const loadData = useCallback(async () => {
     setLoading(true)
 
     try {
-      const allUsers = []
-      let nextUrl = "company-users/"
-
-      while (nextUrl) {
-        const response = await api.get(nextUrl)
-        const data = response.data
-
-        if (Array.isArray(data)) {
-          allUsers.push(...data)
-          break
-        }
-
-        if (!Array.isArray(data?.results)) {
-          throw new Error("Unexpected employee API response.")
-        }
-
-        allUsers.push(...data.results)
-        nextUrl = data.next || null
-      }
-
-      const invitationResponse = await api.get(
-        "v1/invitations/"
-      )
-
-      const invitationData = invitationResponse.data
-
-      setUsers(allUsers)
-
-      setInvitations(
-        Array.isArray(invitationData)
-          ? invitationData
-          : invitationData.results || []
-      )
+      const data = await fetchManagementData()
+      applyData(data)
     } catch (err) {
       setError(
         getErrorMessage(
@@ -123,11 +129,40 @@ function UserManagement() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [applyData])
 
   useEffect(() => {
-    loadData()
-  }, [loadData])
+    let active = true
+
+    async function loadInitialData() {
+      try {
+        const data = await fetchManagementData()
+
+        if (active) {
+          applyData(data)
+        }
+      } catch (err) {
+        if (active) {
+          setError(
+            getErrorMessage(
+              err,
+              "Unable to load employee information."
+            )
+          )
+        }
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadInitialData()
+
+    return () => {
+      active = false
+    }
+  }, [applyData])
 
   function handleInviteChange(event) {
     const { name, value } = event.target
@@ -209,16 +244,13 @@ function UserManagement() {
     setMessage("")
 
     try {
-      await api.patch(
-        `company-users/${editingId}/`,
-        {
-          username: editForm.username,
-          first_name: editForm.first_name,
-          last_name: editForm.last_name,
-          email: editForm.email,
-          role: editForm.role,
-        }
-      )
+      await api.patch(`company-users/${editingId}/`, {
+        username: editForm.username,
+        first_name: editForm.first_name,
+        last_name: editForm.last_name,
+        email: editForm.email,
+        role: editForm.role,
+      })
 
       cancelEdit()
       setMessage("Employee updated successfully.")
@@ -250,12 +282,9 @@ function UserManagement() {
     setMessage("")
 
     try {
-      await api.patch(
-        `company-users/${user.id}/`,
-        {
-          is_active: !user.is_active,
-        }
-      )
+      await api.patch(`company-users/${user.id}/`, {
+        is_active: !user.is_active,
+      })
 
       setMessage(
         `Employee ${

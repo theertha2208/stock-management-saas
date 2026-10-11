@@ -4,6 +4,14 @@ import api from "../api/axios"
 
 const emptyForm = { name: "", description: "" }
 
+async function fetchCategories() {
+  const response = await api.get("categories/")
+
+  return Array.isArray(response.data)
+    ? response.data
+    : response.data.results ?? []
+}
+
 function Categories() {
   const [categories, setCategories] = useState([])
   const [form, setForm] = useState(emptyForm)
@@ -15,13 +23,10 @@ function Categories() {
 
   const loadCategories = async () => {
     setLoading(true)
+
     try {
-      const response = await api.get("categories/")
-      setCategories(
-        Array.isArray(response.data)
-          ? response.data
-          : response.data.results ?? []
-      )
+      const categoryData = await fetchCategories()
+      setCategories(categoryData)
     } catch {
       setError("Unable to load categories.")
     } finally {
@@ -30,7 +35,31 @@ function Categories() {
   }
 
   useEffect(() => {
-    loadCategories()
+    let active = true
+
+    async function loadInitialCategories() {
+      try {
+        const categoryData = await fetchCategories()
+
+        if (active) {
+          setCategories(categoryData)
+        }
+      } catch {
+        if (active) {
+          setError("Unable to load categories.")
+        }
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadInitialCategories()
+
+    return () => {
+      active = false
+    }
   }, [])
 
   const resetForm = () => {
@@ -57,6 +86,7 @@ function Categories() {
       await loadCategories()
     } catch (err) {
       const details = err.response?.data
+
       setError(
         err.response?.status === 403
           ? "You do not have permission to manage categories."
@@ -71,10 +101,12 @@ function Categories() {
 
   const handleEdit = (category) => {
     setEditingId(category.id)
+
     setForm({
       name: category.name ?? "",
       description: category.description ?? "",
     })
+
     setError("")
     setMessage("")
   }
@@ -89,7 +121,11 @@ function Categories() {
 
     try {
       await api.delete(`categories/${category.id}/`)
-      if (editingId === category.id) resetForm()
+
+      if (editingId === category.id) {
+        resetForm()
+      }
+
       setMessage("Category deleted successfully.")
       await loadCategories()
     } catch (err) {
@@ -107,6 +143,7 @@ function Categories() {
         <h2 className="text-2xl font-bold text-slate-800">
           Categories
         </h2>
+
         <p className="mt-1 text-sm text-slate-500">
           Organize your inventory into product categories.
         </p>
@@ -119,10 +156,15 @@ function Categories() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium">
+            <label
+              htmlFor="category-name"
+              className="mb-1 block text-sm font-medium"
+            >
               Category Name
             </label>
+
             <input
+              id="category-name"
               value={form.name}
               onChange={(e) =>
                 setForm({ ...form, name: e.target.value })
@@ -134,10 +176,15 @@ function Categories() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium">
+            <label
+              htmlFor="category-description"
+              className="mb-1 block text-sm font-medium"
+            >
               Description
             </label>
+
             <textarea
+              id="category-description"
               value={form.description}
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
@@ -203,31 +250,43 @@ function Categories() {
                   <th className="px-5 py-4">Actions</th>
                 </tr>
               </thead>
+
               <tbody>
                 {categories.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="p-6 text-center text-slate-500">
+                    <td
+                      colSpan={3}
+                      className="p-6 text-center text-slate-500"
+                    >
                       No categories found.
                     </td>
                   </tr>
                 ) : (
                   categories.map((category) => (
-                    <tr key={category.id} className="border-t">
+                    <tr
+                      key={category.id}
+                      className="border-t"
+                    >
                       <td className="px-5 py-4 font-medium">
                         {category.name}
                       </td>
+
                       <td className="px-5 py-4">
                         {category.description || "—"}
                       </td>
+
                       <td className="px-5 py-4">
                         <div className="flex gap-2">
                           <button
+                            type="button"
                             onClick={() => handleEdit(category)}
                             className="rounded bg-amber-500 px-3 py-2 text-white"
                           >
                             Edit
                           </button>
+
                           <button
+                            type="button"
                             onClick={() => handleDelete(category)}
                             className="rounded bg-red-600 px-3 py-2 text-white"
                           >

@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react"
-import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 import api from "../api/axios"
 
 function getErrorMessage(error) {
@@ -30,7 +30,6 @@ function getErrorMessage(error) {
 }
 
 function AcceptInvitation() {
-  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const token = searchParams.get("token")
 

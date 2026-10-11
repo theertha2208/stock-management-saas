@@ -2,19 +2,17 @@
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
-from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from accounts.models import Company
 from inventory.models import (
     Product,
-    Warehouse,
-    Supplier,
     StockLevel,
     StockMovement,
+    Supplier,
+    Warehouse,
 )
-
 
 User = get_user_model()
 

@@ -4,13 +4,15 @@
 A Company row lock serializes movements within each tenant, including creation
 of previously absent StockLevel rows. PostgreSQL is required for row locking.
 """
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from .models import Product, StockLevel, StockMovement, Supplier, Warehouse
 from accounts.models import Company
+
+from .models import Product, StockLevel, StockMovement, Supplier, Warehouse
 
 COST_STEP = Decimal("0.0001")
 
@@ -23,8 +25,8 @@ def _cost(value, *, required=False):
 
     try:
         amount = Decimal(str(value))
-    except (InvalidOperation, ValueError, TypeError):
-        raise ValidationError("Unit cost must be a valid number.")
+    except (InvalidOperation, ValueError, TypeError) as exc:
+        raise ValidationError("Unit cost must be a valid number.") from exc
 
     if (
         not amount.is_finite()
@@ -45,7 +47,7 @@ def _level(company, product, warehouse):
         warehouse=warehouse,
         defaults={
             "quantity": 0,
-            "average_unit_cost": Decimal("0"),
+            "average_unit_cost": Decimal(0),
         },
     )
     return level
